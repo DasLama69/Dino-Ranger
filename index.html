@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dinosaur Ranger</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🦖 Dinosaur Ranger</h1>
+            <div class="stats">
+                <div class="stat">💰 Money: $<span id="money">0</span></div>
+                <div class="stat">🎫 Visitors: <span id="visitors">0</span></div>
+                <div class="stat">🦕 Dinosaurs: <span id="dinoCount">0</span></div>
+            </div>
+            <div class="profile-selector">
+                <div class="profile-buttons">
+                    <button id="profile-1-btn" class="profile-btn active" onclick="switchProfile(1)" ondblclick="renameProfile(1)" title="Double-click to rename">Profile 1</button>
+                    <button id="profile-2-btn" class="profile-btn" onclick="switchProfile(2)" ondblclick="renameProfile(2)" title="Double-click to rename">Profile 2</button>
+                    <button id="profile-3-btn" class="profile-btn" onclick="switchProfile(3)" ondblclick="renameProfile(3)" title="Double-click to rename">Profile 3</button>
+                    <button id="profile-4-btn" class="profile-btn" onclick="switchProfile(4)" ondblclick="renameProfile(4)" title="Double-click to rename">Profile 4</button>
+                </div>
+                <div class="profile-instructions">
+                    <small style="color: #666; font-size: 0.85em;">💡 Double-click profile to rename</small>
+                </div>
+                <div class="reset-buttons">
+                    <label class="dev-mode-checkbox">
+                        <input type="checkbox" id="dev-mode-checkbox" onchange="toggleDevMode()">
+                        <span>🔧 Dev Mode</span>
+                    </label>
+                    <button id="reset-profile-btn" class="reset-btn" onclick="resetGame()" title="Reset current profile">🔄 Reset Profile</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchView('park')">🏛️ Park Management</button>
+            <button class="tab" onclick="switchView('hunt')">🎯 Dinosaur Hunting</button>
+            <button class="tab" onclick="switchView('upgrades')">⚙️ Upgrades</button>
+            <button class="tab dev-only" id="sandbox-tab" onclick="switchView('sandbox')" style="display: none;">🧪 Sandbox</button>
+        </div>
+
+        <!-- Park Management View -->
+        <div id="park-view" class="view active">
+            <h2 id="park-title" class="park-title">Your Dinosaur Park</h2>
+            <div class="exhibit-grid" id="exhibit-grid"></div>
+            <div class="shop">
+                <h2>🛒 Park Shop</h2>
+                <div id="park-shop"></div>
+            </div>
+        </div>
+
+        <!-- Hunting View -->
+        <div id="hunt-view" class="view">
+            <h2 id="hunt-title" class="hunt-title">Dinosaur Hunting</h2>
+            <div class="weapon-selector-container" id="weapon-selector-container"></div>
+            <div class="gun-stats">
+                <div class="gun-stat-item">
+                    <strong>Weapon:</strong> <span id="gun-name">Pistol</span>
+                </div>
+                <div class="gun-stat-item">
+                    <strong>Damage:</strong> <span id="gun-damage">10</span>
+                </div>
+                <div class="gun-stat-item">
+                    <strong>Accuracy:</strong> <span id="gun-accuracy">70</span>%
+                </div>
+                <div class="gun-stat-item">
+                    <strong>Reload Speed:</strong> <span id="gun-reload">2.0</span>s
+                </div>
+                <div class="gun-stat-item">
+                    <strong>Range:</strong> <span id="gun-range">300</span>px
+                </div>
+                <div class="gun-stat-item">
+                    <strong>Ammo:</strong> <span id="gun-ammo">7/7</span>
+                </div>
+            </div>
+            <div class="hunting-area">
+                <div class="hunting-game-container">
+                    <canvas id="hunt-canvas" class="hunt-canvas"></canvas>
+                </div>
+                <div class="rarity-legend">
+                    <h3>Rarity Legend</h3>
+                    <div class="legend-items-horizontal">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #9E9E9E;"></div>
+                            <span>Common</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #2196F3;"></div>
+                            <span>Rare</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #9C27B0;"></div>
+                            <span>Epic</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FFD700;"></div>
+                            <span>Legendary</span>
+                        </div>
+                    </div>
+                    <div class="legend-instructions">
+                        <p><strong>Controls:</strong> WASD or Arrow Keys to move | Click to shoot</p>
+                    </div>
+                </div>
+                <div id="capture-result-overlay" class="capture-result-overlay"></div>
+                <div id="capture-result" class="capture-result" onclick="event.stopPropagation()">
+                    <h3>Dinosaur Captured!</h3>
+                    <div id="captured-dino-info"></div>
+                    <div class="capture-options">
+                        <button id="sell-dino-btn" class="btn" onclick="sellDino()">Sell ($<span id="sell-price">0</span>)</button>
+                        <button id="return-to-park-btn" class="btn" onclick="returnToPark()">Return to Park</button>
+                        <button class="btn" onclick="startNewHunt()">Hunt Again</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upgrades View -->
+        <div id="upgrades-view" class="view">
+            <h2>Upgrades</h2>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <button class="btn" onclick="Upgrades.resetUpgrades()" style="background: #f44336; color: white;">
+                    🔄 Reset All Upgrades
+                </button>
+            </div>
+            <div class="shop">
+                <h3>🛒 Weapon Shop</h3>
+                <div id="weapon-shop"></div>
+            </div>
+            <div class="shop" style="margin-top: 30px;">
+                <h3>🔫 Weapon Upgrades</h3>
+                <div id="gun-upgrades"></div>
+            </div>
+            <div class="shop" style="margin-top: 30px;">
+                <h3>👤 Character Upgrades</h3>
+                <div id="character-upgrades"></div>
+            </div>
+        </div>
+
+        <!-- Sandbox View (Dev Mode Only) -->
+        <div id="sandbox-view" class="view dev-only" style="display: none;">
+            <h2>🧪 Sandbox Mode</h2>
+            <div class="sandbox-controls">
+                <div class="sandbox-panel">
+                    <h3>🗺️ Map Style</h3>
+                    <select id="sandbox-map-style" class="sandbox-select">
+                        <option value="land">Land</option>
+                        <option value="aquatic">Aquatic</option>
+                    </select>
+                </div>
+                <div class="sandbox-panel">
+                    <h3>🦖 Spawn Dinosaur</h3>
+                    <select id="sandbox-dino-select" class="sandbox-select"></select>
+                    <button class="btn" onclick="spawnSandboxDino()">Spawn</button>
+                </div>
+                <div class="sandbox-panel">
+                    <h3>🌳 Spawn Objects</h3>
+                    <button class="btn" onclick="spawnSandboxBush()">Spawn Bush</button>
+                </div>
+                <div class="sandbox-panel">
+                    <h3>🔊 Test Sounds</h3>
+                    <div class="sound-buttons">
+                        <button class="btn btn-small" onclick="testSandboxSound('shoot')">Shoot</button>
+                        <button class="btn btn-small" onclick="testSandboxSound('hit')">Hit</button>
+                        <button class="btn btn-small" onclick="testSandboxSound('critical')">Critical</button>
+                        <button class="btn btn-small" onclick="testSandboxSound('damage')">Damage</button>
+                        <button class="btn btn-small" onclick="testSandboxSound('capture')">Capture</button>
+                        <button class="btn btn-small" onclick="testSandboxSound('purchase')">Purchase</button>
+                        <button class="btn btn-small" onclick="testSandboxSound('alert')">Alert</button>
+                    </div>
+                </div>
+                <div class="sandbox-panel">
+                    <button class="btn" onclick="clearSandbox()" style="background: #f44336; color: white;">Clear All</button>
+                </div>
+            </div>
+            <div class="hunting-area">
+                <div class="hunting-game-container">
+                    <canvas id="sandbox-canvas" class="hunt-canvas"></canvas>
+                </div>
+                <div class="legend-instructions">
+                    <p><strong>Controls:</strong> WASD or Arrow Keys to move</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <!-- Load game configuration first -->
+    <script src="game-config.js"></script>
+    <!-- Load image loader -->
+    <script src="image-loader.js"></script>
+    <!-- Load sound manager -->
+    <script src="sound-manager.js"></script>
+    <!-- Load game systems -->
+    <script src="game-state.js"></script>
+    <!-- Load shared utilities -->
+    <script src="game-helpers.js"></script>
+    <script src="rendering-utils.js"></script>
+    <script src="shooting-utils.js"></script>
+    <script src="ui.js"></script>
+    <script src="park-manager.js"></script>
+    <script src="debug-profiler.js"></script>
+    <script src="hunting-game.js"></script>
+    <script src="upgrades.js"></script>
+    <script src="sandbox.js"></script>
+    <!-- Load main game loop -->
+    <script src="main.js"></script>
+</body>
+</html>
