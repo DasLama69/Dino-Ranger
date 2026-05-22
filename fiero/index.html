@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!--
+  🦕🦖 DINO CATCHER - A game for young coders! 🦖🦕
+  =====================================================
+  Hi! This game was made just for you to learn coding.
+  Look for the comments (the lines starting with //)
+  to find places you can change things!
+
+  SECTIONS IN THIS FILE:
+    1. HTML  - The stuff you SEE on the page
+    2. CSS   - The COLORS and SIZES (look for <style>)
+    3. JS    - The game LOGIC (look for <script>)
+-->
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🦕 Dino Catcher!</title>
+
+  <!-- ============================================================
+       🎨 SECTION 2: STYLES - Change colors and sizes here!
+       ============================================================ -->
+  <style>
+
+    /* 🎨 COLORS - Try changing these to your favourite colors! */
+    :root {
+      --background:   #1a1a2e;   /* The dark blue background */
+      --header-bg:    #16213e;   /* The top bar color */
+      --park-bg:      #0f3460;   /* The park area color */
+      --text-color:   #ffffff;   /* All the text */
+      --button-color: #e94560;   /* The start button */
+      --dino-size:    90px;      /* 🦕 How big the dinos are */
+    }
+
+    /* --- Page basics --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--background);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* --- Top header bar --- */
+    #header {
+      background: var(--header-bg);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+
+    #header h1 { font-size: 1.5rem; }
+
+    #stats {
+      display: flex;
+      gap: 24px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    #stats span { display: flex; align-items: center; gap: 6px; }
+
+    /* --- Main layout: arena on the left, park on the right --- */
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* --- Game arena where dinos appear --- */
+    #arena {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #1e3a5f 0%, #0a0a1a 100%);
+    }
+
+    /* --- Start screen overlay --- */
+    #start-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.75);
+      z-index: 20;
+      gap: 16px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #start-screen h2 { font-size: 2.5rem; }
+    #start-screen p  { font-size: 1.1rem; opacity: 0.85; max-width: 360px; }
+
+    /* --- End screen overlay --- */
+    #end-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 20;
+      gap: 14px;
+      text-align: center;
+      padding: 20px;
+      display: none;
+    }
+
+    #end-screen h2   { font-size: 2.2rem; }
+    #end-screen p    { font-size: 1.1rem; opacity: 0.85; }
+    #end-collection  { font-size: 1.5rem; margin: 8px 0; }
+
+    /* --- Shared button style --- */
+    .btn {
+      background: var(--button-color);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 36px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .btn:hover  { opacity: 0.9; transform: scale(1.05); }
+    .btn:active { transform: scale(0.97); }
+
+    /* --- Dinosaur cards that appear in the arena --- */
+    .dino-card {
+      position: absolute;
+      width: var(--dino-size);
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      animation: dino-bounce 0.6s ease infinite alternate;
+      transition: transform 0.1s;
+      z-index: 5;
+    }
+
+    /* 🦕 Dinos gently bounce up and down */
+    @keyframes dino-bounce {
+      from { transform: translateY(0px); }
+      to   { transform: translateY(-10px); }
+    }
+
+    .dino-card:hover { transform: scale(1.2); }
+    .dino-card:active { transform: scale(0.9); }
+
+    .dino-emoji {
+      font-size: calc(var(--dino-size) * 0.6);
+      line-height: 1;
+      display: block;
+    }
+
+    .dino-name {
+      font-size: 0.65rem;
+      font-weight: bold;
+      margin-top: 4px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: white;
+      white-space: nowrap;
+    }
+
+    /* Caught animation - dino flies up and fades out */
+    .dino-caught {
+      animation: fly-away 0.5s forwards !important;
+      pointer-events: none;
+    }
+
+    @keyframes fly-away {
+      0%   { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.2) translateY(-120px); opacity: 0; }
+    }
+
+    /* Score pop-up text when you catch a dino */
+    .score-pop {
+      position: absolute;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #ffd700;
+      pointer-events: none;
+      animation: pop-up 0.9s forwards;
+      z-index: 15;
+    }
+
+    @keyframes pop-up {
+      0%   { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-70px); opacity: 0; }
+    }
+
+    /* --- Park panel on the right side --- */
+    #park {
+      width: 220px;
+      background: var(--park-bg);
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      border-left: 2px solid rgba(255,255,255,0.1);
+    }
+
+    #park h3 {
+      text-align: center;
+      font-size: 1rem;
+      opacity: 0.8;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 8px;
+    }
+
+    /* Each dino entry in the park */
+    .park-dino {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      animation: park-pop 0.3s ease;
+    }
+
+    @keyframes park-pop {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .park-dino-emoji { font-size: 1.6rem; }
+    .park-dino-info  { flex: 1; }
+    .park-dino-name  { font-weight: bold; font-size: 0.8rem; }
+    .park-dino-pts   { font-size: 0.7rem; opacity: 0.7; }
+    .park-dino-count {
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    #park-empty {
+      text-align: center;
+      opacity: 0.4;
+      font-size: 0.85rem;
+      margin-top: 20px;
+    }
+
+    /* Timer turns red when under 10 seconds */
+    .timer-warning { color: #ff4757 !important; animation: pulse 0.5s infinite alternate; }
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       🏗️ SECTION 1: HTML - The layout of the page
+       ============================================================ -->
+
+  <!-- Top bar with title and score -->
+  <header id="header">
+    <h1>🦕 Dino Catcher!</h1>
+    <div id="stats">
+      <span>⏱️ <span id="timer-display">60</span>s</span>
+      <span>⭐ <span id="score-display">0</span> pts</span>
+      <span>🦕 <span id="caught-display">0</span> caught</span>
+    </div>
+  </header>
+
+  <!-- Main area: arena + park side panel -->
+  <div id="main">
+
+    <!-- Arena: where dinos appear and you click them -->
+    <div id="arena">
+
+      <!-- Start screen (shown before game begins) -->
+      <div id="start-screen">
+        <h2>🦖 Dino Catcher!</h2>
+        <p>Dinosaurs will pop up on the screen.<br>Click them as fast as you can to catch them!</p>
+        <p>Rare dinos are worth more points! 🌟</p>
+        <button class="btn" onclick="startGame()">▶ Start Game!</button>
+      </div>
+
+      <!-- End screen (shown when timer hits 0) -->
+      <div id="end-screen">
+        <h2>🎉 Time's Up!</h2>
+        <p>You caught <strong id="end-caught">0</strong> dinosaurs!</p>
+        <p>Final Score: <strong id="end-score">0</strong> points</p>
+        <div id="end-collection"></div>
+        <button class="btn" onclick="restartGame()">🔄 Play Again!</button>
+      </div>
+
+    </div><!-- end #arena -->
+
+    <!-- Park panel: your dino collection -->
+    <div id="park">
+      <h3>🏞️ My Dino Park</h3>
+      <div id="park-empty">Catch some dinos<br>to fill your park!</div>
+    </div>
+
+  </div><!-- end #main -->
+
+
+  <!-- ============================================================
+       🎮 SECTION 3 + 4 + 5: JAVASCRIPT - The game logic!
+       ============================================================
+
+  This is where the game "thinks".
+  Look for the 🔧 CHANGE ME comments to find fun things to try!
+  -->
+  <script>
+
+    // ============================================================
+    // 🔧 GAME SETTINGS - Try changing these numbers!
+    // ============================================================
+
+    const GAME_TIME  = 60;    // ⏱️ How many seconds does the game last?
+    const DINO_SPEED = 2000;  // 🦕 How often does a new dino appear? (lower = faster, in ms)
+    const MAX_DINOS  = 6;     // 🎯 How many dinos can be on screen at once?
+    const DINO_LIFE  = 4000;  // ⌛ How long before a dino escapes? (in ms)
+
+
+    // ============================================================
+    // 🦕 DINOSAUR LIST - Add your own dino here!
+    // Each dino needs: name, emoji, points, and color
+    // ============================================================
+
+    const DINOSAURS = [
+      // Common dinos (appear most often, fewer points)
+      { name: "Triceratops",    emoji: "🦕", points: 5,  rarity: "common",    color: "#51cf66" },
+      { name: "Brachiosaurus",  emoji: "🦕", points: 5,  rarity: "common",    color: "#74c0fc" },
+      { name: "Stegosaurus",    emoji: "🦕", points: 5,  rarity: "common",    color: "#a9e34b" },
+      { name: "Ankylosaurus",   emoji: "🦕", points: 8,  rarity: "common",    color: "#63e6be" },
+      { name: "Parasaurolophus",emoji: "🦕", points: 8,  rarity: "common",    color: "#74b816" },
+
+      // Rare dinos (appear sometimes, more points!)
+      { name: "T-Rex",          emoji: "🦖", points: 15, rarity: "rare",      color: "#ff6b6b" },
+      { name: "Velociraptor",   emoji: "🦖", points: 15, rarity: "rare",      color: "#f76707" },
+      { name: "Spinosaurus",    emoji: "🦖", points: 20, rarity: "rare",      color: "#e64980" },
+      { name: "Pterodactyl",    emoji: "🦅", points: 20, rarity: "rare",      color: "#cc5de8" },
+      { name: "Mosasaurus",     emoji: "🐟", points: 20, rarity: "rare",      color: "#4dabf7" },
+
+      // Legendary dinos (appear rarely, LOTS of points!)
+      { name: "Indominus Rex",  emoji: "🦖", points: 50, rarity: "legendary", color: "#ffd700" },
+      { name: "Giganotosaurus", emoji: "🦖", points: 40, rarity: "legendary", color: "#ff8c00" },
+      { name: "Quetzalcoatlus", emoji: "🦅", points: 35, rarity: "legendary", color: "#da77f2" },
+    ];
+
+    // How likely each rarity is to appear (out of 100)
+    // 🔧 Try changing these numbers! (they should add up to 100)
+    const RARITY_CHANCES = {
+      common:    65,   // 65% chance of a common dino
+      rare:      28,   // 28% chance of a rare dino
+      legendary:  7,   //  7% chance of a legendary dino
+    };
+
+
+    // ============================================================
+    // ⚙️ GAME STATE - The game keeps track of things here
+    // (You don't need to change this part!)
+    // ============================================================
+
+    let score       = 0;   // Total points earned
+    let caughtCount = 0;   // Total dinos caught
+    let timeLeft    = GAME_TIME;
+    let gameRunning = false;
+    let spawnTimer  = null;  // Controls when new dinos appear
+    let countdown   = null;  // Controls the clock ticking
+
+    // Keeps count of each dino type in your park
+    // Example: { "T-Rex": 2, "Triceratops": 5 }
+    let parkCollection = {};
+
+
+    // ============================================================
+    // 🎮 GAME FUNCTIONS - How the game works
+    // ============================================================
+
+    // Called when the player clicks "Start Game!"
+    function startGame() {
+      // Reset everything
+      score        = 0;
+      caughtCount  = 0;
+      timeLeft     = GAME_TIME;
+      gameRunning  = true;
+      parkCollection = {};
+
+      // Clear the arena of any leftover dinos
+      document.querySelectorAll('.dino-card').forEach(d => d.remove());
+
+      // Clear the park panel
+      document.getElementById('park').innerHTML = '<h3>🏞️ My Dino Park</h3><div id="park-empty">Catch some dinos<br>to fill your park!</div>';
+
+      // Hide the start screen
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('end-screen').style.display   = 'none';
+
+      // Update score display
+      updateStats();
+
+      // Start spawning dinos and ticking the clock
+      spawnTimer = setInterval(spawnDino, DINO_SPEED);
+      countdown  = setInterval(tickClock, 1000);
+
+      // Spawn one right away so the player doesn't wait
+      spawnDino();
+    }
+
+    // Called when the player clicks "Play Again!"
+    function restartGame() {
+      startGame();
+    }
+
+    // Called every second to count down the timer
+    function tickClock() {
+      timeLeft--;
+      updateStats();
+
+      // Make timer turn red in the last 10 seconds
+      const timerEl = document.getElementById('timer-display');
+      if (timeLeft <= 10) {
+        timerEl.parentElement.classList.add('timer-warning');
+      }
+
+      // When time runs out, end the game
+      if (timeLeft <= 0) {
+        endGame();
+      }
+    }
+
+    // Ends the game and shows the final screen
+    function endGame() {
+      gameRunning = false;
+      clearInterval(spawnTimer);
+      clearInterval(countdown);
+
+      // Make all remaining dinos run away
+      document.querySelectorAll('.dino-card').forEach(d => d.remove());
+
+      // Build the end screen emoji summary
+      const collectionEmojis = Object.entries(parkCollection)
+        .map(([name, count]) => {
+          const dino = DINOSAURS.find(d => d.name === name);
+          return dino ? dino.emoji.repeat(Math.min(count, 5)) : '';
+        })
+        .join(' ');
+
+      document.getElementById('end-caught').textContent    = caughtCount;
+      document.getElementById('end-score').textContent     = score;
+      document.getElementById('end-collection').textContent = collectionEmojis || '🥚';
+
+      document.getElementById('end-screen').style.display = 'flex';
+    }
+
+    // Updates the numbers shown in the header
+    function updateStats() {
+      document.getElementById('timer-display').textContent  = timeLeft;
+      document.getElementById('score-display').textContent  = score;
+      document.getElementById('caught-display').textContent = caughtCount;
+    }
+
+
+    // ============================================================
+    // 🦕 DINO SPAWNING - Making a dino appear on screen
+    // ============================================================
+
+    // Picks a random dino based on rarity chances
+    function pickRandomDino() {
+      const roll = Math.random() * 100;  // Random number 0-100
+
+      let rarity;
+      if (roll < RARITY_CHANCES.legendary) {
+        rarity = 'legendary';
+      } else if (roll < RARITY_CHANCES.legendary + RARITY_CHANCES.rare) {
+        rarity = 'rare';
+      } else {
+        rarity = 'common';
+      }
+
+      // Get all dinos of that rarity, pick one randomly
+      const pool = DINOSAURS.filter(d => d.rarity === rarity);
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    // Creates a dino card and places it in the arena
+    function spawnDino() {
+      if (!gameRunning) return;
+
+      // Don't spawn more than MAX_DINOS at once
+      const existing = document.querySelectorAll('.dino-card');
+      if (existing.length >= MAX_DINOS) return;
+
+      const dino  = pickRandomDino();
+      const arena = document.getElementById('arena');
+
+      // Pick a random position inside the arena
+      // (We keep it away from the edges so the dino is fully visible)
+      const maxX = arena.clientWidth  - 110;
+      const maxY = arena.clientHeight - 130;
+      const x    = 20 + Math.random() * maxX;
+      const y    = 20 + Math.random() * maxY;
+
+      // Build the dino HTML element
+      const card = document.createElement('div');
+      card.className = 'dino-card';
+      card.style.left = x + 'px';
+      card.style.top  = y + 'px';
+
+      card.innerHTML = `
+        <span class="dino-emoji">${dino.emoji}</span>
+        <div class="dino-name" style="background:${dino.color}">${dino.name}</div>
+      `;
+
+      // When the player clicks the dino, catch it!
+      card.addEventListener('click', () => catchDino(card, dino));
+
+      // If the player doesn't click in time, the dino escapes
+      const escapeTimeout = setTimeout(() => {
+        if (card.parentElement) {
+          card.classList.add('dino-caught');
+          setTimeout(() => card.remove(), 500);
+        }
+      }, DINO_LIFE);
+
+      // Store the timeout so we can cancel it if the dino is caught first
+      card.dataset.escapeId = escapeTimeout;
+
+      arena.appendChild(card);
+    }
+
+
+    // ============================================================
+    // 🎯 CATCHING A DINO - What happens when you click one
+    // ============================================================
+
+    function catchDino(card, dino) {
+      if (!gameRunning || card.classList.contains('dino-caught')) return;
+
+      // Stop the escape countdown for this dino
+      clearTimeout(card.dataset.escapeId);
+
+      // Play the caught animation
+      card.classList.add('dino-caught');
+
+      // Show a floating score pop-up
+      showScorePop(card, dino);
+
+      // Update the score and count
+      score       += dino.points;
+      caughtCount += 1;
+      updateStats();
+
+      // Add the dino to the park
+      addToPark(dino);
+
+      // Remove the card after animation finishes
+      setTimeout(() => card.remove(), 500);
+    }
+
+    // Shows the "+10 pts" text that floats up when you catch a dino
+    function showScorePop(card, dino) {
+      const pop = document.createElement('div');
+      pop.className = 'score-pop';
+      pop.textContent = '+' + dino.points + ' pts!';
+      pop.style.left = card.style.left;
+      pop.style.top  = card.style.top;
+
+      // Legendary dinos get a special message
+      if (dino.rarity === 'legendary') {
+        pop.textContent = '⭐ LEGENDARY! +' + dino.points;
+        pop.style.color = '#ffd700';
+        pop.style.fontSize = '1.8rem';
+      } else if (dino.rarity === 'rare') {
+        pop.textContent = '✨ RARE! +' + dino.points;
+        pop.style.color = '#da77f2';
+      }
+
+      document.getElementById('arena').appendChild(pop);
+      setTimeout(() => pop.remove(), 900);
+    }
+
+
+    // ============================================================
+    // 🏞️ PARK - Adding dinos to your collection panel
+    // ============================================================
+
+    function addToPark(dino) {
+      // Remove the "empty" message if it's there
+      const emptyMsg = document.getElementById('park-empty');
+      if (emptyMsg) emptyMsg.remove();
+
+      // Count this dino in the collection
+      parkCollection[dino.name] = (parkCollection[dino.name] || 0) + 1;
+      const count = parkCollection[dino.name];
+
+      // Update or create the park entry for this dino type
+      const existingEntry = document.getElementById('park-dino-' + dino.name.replace(/\s/g, '-'));
+
+      if (existingEntry) {
+        // Already in the park — just update the count
+        existingEntry.querySelector('.park-dino-count').textContent = 'x' + count;
+      } else {
+        // First time catching this dino — add a new entry
+        const entry = document.createElement('div');
+        entry.className = 'park-dino';
+        entry.id = 'park-dino-' + dino.name.replace(/\s/g, '-');
+        entry.style.borderLeft = '4px solid ' + dino.color;
+
+        entry.innerHTML = `
+          <span class="park-dino-emoji">${dino.emoji}</span>
+          <div class="park-dino-info">
+            <div class="park-dino-name">${dino.name}</div>
+            <div class="park-dino-pts">${dino.points} pts each</div>
+          </div>
+          <span class="park-dino-count">x1</span>
+        `;
+
+        document.getElementById('park').appendChild(entry);
+      }
+    }
+
+  </script>
+</body>
+</html>
